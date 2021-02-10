@@ -33,6 +33,8 @@ http GET localhost:3000/steps/{DOCUMENT_ID}
 #### Get all documents
 ```bash
 http GET localhost:3000/steps
+
+http GET localhost:3000/steps first=="2" after=="60244a1be3926219060bd291"
 ```
 
 #### Delete document
@@ -43,3 +45,5 @@ http DELETE localhost:3000/steps/{DOCUMENT_ID}
 ## Sources
 - [Converting to ES6](https://www.freecodecamp.org/news/how-to-enable-es6-and-beyond-syntax-with-node-and-express-68d3e11fe1ab/)
 - [Using async/await with Express](https://zellwk.com/blog/async-await-express/)
+- [Limiting results](https://kb.objectrocket.com/mongo-db/how-to-use-the-mongoose-limit-function-927)
+- [ULID](https://github.com/ulid/spec), a compact, random ID generator with sorting.

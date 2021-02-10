@@ -1,17 +1,44 @@
 import { nanoid } from "nanoid";
 import createError from "http-errors";
 import { getModels } from "../db";
+import { getPaginationParams } from "./query-params";
+import mongoose from "mongoose";
 
 export const getAllSteps = (req, res, next) => {
   const { Step } = getModels();
-  Step.find({}, (err, arr) => {
+
+  // Get URL parameters related to pagination
+  const { query } = req;
+
+  console.log("getting pagination params");
+
+  const { forward, cursor, limit } = getPaginationParams(query);
+
+  console.log("skerr");
+
+  let paginationOpts = {
+    sort: { id: forward ? 1 : -1 },
+    limit,
+  };
+
+  console.log("Querying with pagination options:", paginationOpts);
+
+  if (forward) {
+    paginationOpts = { ...paginationOpts, startingAfter: cursor };
+  } else {
+    paginationOpts = { ...paginationOpts, endingBefore: cursor };
+  }
+
+  console.log("Querying with pagination options:", paginationOpts);
+
+  mongoose.model("Step").paginate({}, paginationOpts, (err, results) => {
     if (err) {
       console.log("Failed to get Steps", err);
       next(createError(500, "Error occurred while getting Steps"));
       return;
     }
     console.log("Successfully retrieved Steps");
-    res.send(arr);
+    res.send(results);
   });
 };
 

@@ -1,4 +1,10 @@
 import mongoose from "mongoose";
+import paginationPlugin from "mongoose-cursor-pagination";
+import {
+  defaultPageSize,
+  maxPageSize,
+  minPageSize,
+} from "./routes/query-params";
 
 let db;
 const Models = {};
@@ -17,6 +23,7 @@ const initializeConnection = () => {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     useFindAndModify: false,
+    useCreateIndex: true,
   });
   db = mongoose.connection;
   db.on("error", console.error.bind(console, "connection error:"));
@@ -28,10 +35,17 @@ const initializeConnection = () => {
 const initializeSchemas = () => {
   // Define schema
   const stepSchema = new mongoose.Schema({
-    id: String,
+    id: { type: String, index: true, unique: true },
     title: String,
     comments: [{ body: String, date: Date }],
     date: { type: Date, default: Date.now },
+  });
+
+  stepSchema.plugin(paginationPlugin, {
+    key: "id",
+    limit: defaultPageSize,
+    maxLimit: maxPageSize,
+    minLimit: minPageSize,
   });
 
   // NOTE: methods must be added to the schema before compiling it with mongoose.model()
