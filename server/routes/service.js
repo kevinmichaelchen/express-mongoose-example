@@ -1,4 +1,4 @@
-import { ulid } from 'ulid'
+import { ulid } from "ulid";
 import createError from "http-errors";
 import { getModels } from "../db";
 import { getPaginationParams } from "./query-params";
@@ -10,26 +10,32 @@ export const getAllSteps = (req, res, next) => {
   // Get URL parameters related to pagination
   const { query } = req;
 
-  console.log("getting pagination params");
+  const paginationParams = getPaginationParams(query);
 
-  const { forward, cursor, limit } = getPaginationParams(query);
+  console.log(paginationParams);
 
-  console.log("skerr");
+  const { forward, cursor, limit, err } = paginationParams;
 
-  let paginationOpts = {
-    sort: { id: forward ? 1 : -1 },
-    limit,
-  };
-
-  console.log("Querying with pagination options:", paginationOpts);
-
-  if (forward) {
-    paginationOpts = { ...paginationOpts, startingAfter: cursor };
-  } else {
-    paginationOpts = { ...paginationOpts, endingBefore: cursor };
+  if (err) {
+    console.log("Failed to get Steps", err);
+    next(createError(400, err));
+    return;
   }
 
-  console.log("Querying with pagination options:", paginationOpts);
+  let paginationOpts = {
+    sort: { id: 1 },
+    limit,
+    select: ["id", "title"],
+  };
+
+  if (forward) {
+    console.log("going forward");
+    paginationOpts = { ...paginationOpts, startingAfter: cursor };
+  } else {
+    console.log("going backward");
+    paginationOpts = { ...paginationOpts, endingBefore: cursor };
+  }
+  console.log(paginationOpts);
 
   mongoose.model("Step").paginate({}, paginationOpts, (err, results) => {
     if (err) {

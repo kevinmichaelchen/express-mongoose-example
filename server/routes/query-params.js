@@ -7,25 +7,33 @@ export const defaultPageSize = 10;
 // https://relay.dev/graphql/connections.htm
 export const getPaginationParams = (query) => {
   // Forward pagination with first + after
-  let first = getUrlParamAsNumber(query, "first");
-  const after = query["after"] || "";
+  const firstStr = query["first"];
+  const lastStr = query["last"];
+  const after = query["after"];
+  const before = query["before"];
 
-  // Backward pagination with last + before
-  let last = getUrlParamAsNumber(query, "last");
-  const before = query["before"] || "";
+  const forward = firstStr || after;
+  const backward = lastStr || before;
+  const noneSpecified = !forward && !backward;
 
-  // Default to forward pagination.
-  if (Number.isInteger(first) || isNaN(last)) {
-    const limit = sanitizePageSize(first);
+  if (forward && backward) {
     return {
-      foward: true,
+      err:
+        "cannot mix and match pagination url params; either use first/after or last/before",
+    };
+  }
+
+  if (forward || noneSpecified) {
+    const limit = sanitizePageSize(parseInt(firstStr));
+    return {
+      forward: true,
       cursor: after,
       limit,
     };
   } else {
-    const limit = sanitizePageSize(last);
+    const limit = sanitizePageSize(parseInt(lastStr));
     return {
-      foward: false,
+      forward: false,
       cursor: before,
       limit,
     };
@@ -33,9 +41,6 @@ export const getPaginationParams = (query) => {
 };
 
 const sanitizePageSize = (size) =>
-  size < minPageSize || size > maxPageSize ? defaultPageSize : size;
-
-const getUrlParamAsNumber = (query, name) => {
-  const valStr = query[name];
-  return parseInt(valStr);
-};
+  isNaN(size) || size < minPageSize || size > maxPageSize
+    ? defaultPageSize
+    : size;
