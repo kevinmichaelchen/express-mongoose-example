@@ -34,7 +34,11 @@ http GET localhost:3000/steps/{DOCUMENT_ID}
 ```bash
 http GET localhost:3000/steps
 
-http GET localhost:3000/steps first=="2" after=="60244a1be3926219060bd291"
+# Forward pagination
+http GET localhost:3000/steps first=="2" after=="01EY6YXJMWSJTG5QD1D866XACY"
+
+# Backward pagination
+http GET localhost:3000/steps last=="2" before=="01EY6YXJMWSJTG5QD1D866XACY"
 ```
 
 #### Delete document
