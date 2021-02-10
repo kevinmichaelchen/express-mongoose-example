@@ -1,10 +1,10 @@
 import { nanoid } from "nanoid";
 import createError from "http-errors";
-import { getModels, getDB } from "../db";
+import { getModels } from "../db";
 
 export const getAllSteps = (req, res, next) => {
   const { Step } = getModels();
-  const arr = Step.find({}, (err, arr) => {
+  Step.find({}, (err, arr) => {
     console.log("arr", arr);
     res.send(arr);
   });
