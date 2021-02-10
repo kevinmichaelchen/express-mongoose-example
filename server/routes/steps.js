@@ -1,5 +1,11 @@
 import express from "express";
-import { getAllSteps, getStep, createStep, deleteStep } from "./service";
+import {
+  getAllSteps,
+  getStep,
+  createStep,
+  updateStep,
+  deleteStep,
+} from "./service";
 
 const router = express.Router();
 
@@ -8,6 +14,9 @@ router.get("/", getAllSteps);
 
 // GET /steps/1
 router.get("/:id", getStep);
+
+// PUT /steps/1
+router.put("/:id", updateStep);
 
 // POST /steps
 router.post("/", createStep);
