@@ -42,6 +42,18 @@ export const getAllSteps = (req, res, next) => {
   });
 };
 
+export const deleteAllSteps = (req, res, next) => {
+  const { Step } = getModels();
+  Step.deleteMany({}, (err) => {
+    if (err) {
+      console.log("Failed to delete Steps", err);
+      next(createError(500, "Error occurred while deleting Steps"));
+      return;
+    }
+    res.send({ success: true });
+  });
+};
+
 export const createStep = (req, res, next) => {
   const { Step } = getModels();
 

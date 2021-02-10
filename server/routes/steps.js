@@ -5,6 +5,7 @@ import {
   createStep,
   updateStep,
   deleteStep,
+  deleteAllSteps,
 } from "./service";
 
 const router = express.Router();
@@ -23,5 +24,8 @@ router.post("/", createStep);
 
 // DELETE /steps/1
 router.delete("/:id", deleteStep);
+
+// DELETE /steps
+router.delete("/", deleteAllSteps);
 
 export default router;

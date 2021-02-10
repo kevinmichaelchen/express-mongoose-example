@@ -42,6 +42,11 @@ http GET localhost:3000/steps first=="2" after=="60244a1be3926219060bd291"
 http DELETE localhost:3000/steps/{DOCUMENT_ID}
 ```
 
+#### Delete all documents
+```bash
+http DELETE localhost:3000/steps
+```
+
 ## Sources
 - [Converting to ES6](https://www.freecodecamp.org/news/how-to-enable-es6-and-beyond-syntax-with-node-and-express-68d3e11fe1ab/)
 - [Using async/await with Express](https://zellwk.com/blog/async-await-express/)
