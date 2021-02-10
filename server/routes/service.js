@@ -1,4 +1,4 @@
-import { nanoid } from "nanoid";
+import { ulid } from 'ulid'
 import createError from "http-errors";
 import { getModels } from "../db";
 import { getPaginationParams } from "./query-params";
@@ -60,7 +60,7 @@ export const createStep = (req, res, next) => {
   const { body } = req;
   const { title } = body;
 
-  const inputBody = { id: nanoid(), title };
+  const inputBody = { id: ulid(), title };
 
   // Create new object
   const step = new Step(inputBody);
