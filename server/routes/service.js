@@ -4,48 +4,17 @@ import { getModels } from "../db";
 import { getPaginationParams } from "./query-params";
 import mongoose from "mongoose";
 
-export const getAllSteps = (req, res, next) => {
+export const getAllSteps = async (req, res, next) => {
   const { Step } = getModels();
 
-  // Get URL parameters related to pagination
-  const { query } = req;
-
-  const paginationParams = getPaginationParams(query);
-
-  console.log(paginationParams);
-
-  const { forward, cursor, limit, err } = paginationParams;
-
-  if (err) {
-    console.log("Failed to get Steps", err);
-    next(createError(400, err));
+  try {
+    const steps = await Step.find({}).exec();
+    res.send(steps);
+  } catch (err) {
+    console.error(err);
+    internalErr(next)(err)("Error occurred while finding Steps");
     return;
   }
-
-  let paginationOpts = {
-    sort: { id: 1 },
-    limit,
-    select: ["id", "title"],
-  };
-
-  if (forward) {
-    console.log("going forward");
-    paginationOpts = { ...paginationOpts, startingAfter: cursor };
-  } else {
-    console.log("going backward");
-    paginationOpts = { ...paginationOpts, endingBefore: cursor };
-  }
-  console.log(paginationOpts);
-
-  mongoose.model("Step").paginate({}, paginationOpts, (err, results) => {
-    if (err) {
-      console.log("Failed to get Steps", err);
-      next(createError(500, "Error occurred while getting Steps"));
-      return;
-    }
-    console.log("Successfully retrieved Steps");
-    res.send(results);
-  });
 };
 
 export const deleteAllSteps = (req, res, next) => {
