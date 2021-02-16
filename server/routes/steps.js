@@ -2,6 +2,7 @@ import express from "express";
 import {
   getAllSteps,
   getStep,
+  appendStep,
   createStep,
   updateStep,
   deleteStep,
@@ -21,6 +22,9 @@ router.put("/:id", updateStep);
 
 // POST /steps
 router.post("/", createStep);
+
+// POST /steps/add
+router.post("/add", appendStep);
 
 // DELETE /steps/1
 router.delete("/:id", deleteStep);

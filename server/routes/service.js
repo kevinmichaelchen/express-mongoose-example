@@ -60,29 +60,132 @@ export const deleteAllSteps = (req, res, next) => {
   });
 };
 
-export const createStep = (req, res, next) => {
+export const appendStep = (req, res, next) => {
   const { Step } = getModels();
 
   const { body } = req;
-  const { title } = body;
+  const {
+    data_block: { title, instruction, audio_instruction },
+    media_block: {
+      image_urls,
+      video_urls,
+      highlight_block: {
+        banner_image_url,
+        profile_image_url,
+        recipe_tutorial_video_url,
+      },
+    },
+  } = body;
+};
 
-  const inputBody = { id: ulid(), title };
+export const createStep = (req, res, next) => {
+  const { Step } = getModels();
 
-  // Create new object
-  const step = new Step(inputBody);
-  console.log("Saving", step.toString());
+  const { body, query } = req;
+  const {
+    data_block: { title, instruction, audio_instruction },
+    media_block: {
+      image_urls,
+      video_urls,
+      highlight_block: {
+        banner_image_url,
+        profile_image_url,
+        recipe_tutorial_video_url,
+      },
+    },
+  } = body;
 
-  // Save object to database
-  step.save((err, step) => {
-    if (err) {
-      console.log("Failed to create Step", err);
-      next(createError(500, "Error occurred while saving Step"));
+  // The index of the Step that we want to insert the new step after
+  const after = query.after;
+  if (!after) {
+    next(createError(500, "Must provide 'after' url param"));
+    return;
+  }
+
+  // Look up the Step that we're inserting after
+  Step.findOne({ id: after }, (err, previousStep) => {
+    if (!previousStep) {
+      next(createError(404, "Previous Step not found"));
+      return;
+    } else if (err) {
+      console.log("error", err);
+      next(createError(500, "Error occurred while retrieving previous Step"));
       return;
     }
-    console.log("Successfully saved:", step.toString());
-  });
 
-  res.send(inputBody);
+    // Get previous step's number!
+    const prevNumber = previousStep.data_block.number;
+    const nextStepID = previousStep.next_step_id;
+
+    const newStepBody = {
+      id: ulid(),
+      next_step_id: nextStepID,
+      prev_step_id: previousStep.id,
+      data_block: {
+        // Increment the number!
+        number: prevNumber + 1,
+        title,
+        instruction,
+        audio_instruction,
+      },
+      media_block: {
+        image_urls,
+        video_urls,
+        highlight_block: {
+          banner_image_url,
+          profile_image_url,
+          recipe_tutorial_video_url,
+        },
+      },
+    };
+
+    // Updating prev.next
+    previousStep.next_step_id = newStepBody.id;
+
+    // Save previous Step to database
+    previousStep.save((err, step) => {
+      if (err) {
+        console.log("Failed to create Step", err);
+        next(createError(500, "Error occurred while saving previous Step"));
+        return;
+      }
+      console.log("Successfully saved:", step.toString());
+    });
+
+    // Create new object
+    const newStep = new Step(newStepBody);
+    console.log("Saving", newStep.toString());
+
+    // Save new object to database
+    newStep.save((err, step) => {
+      if (err) {
+        console.log("Failed to create Step", err);
+        next(createError(500, "Error occurred while saving Step"));
+        return;
+      }
+      console.log("Successfully saved:", step.toString());
+    });
+
+    // Look up the Step that we're inserting after
+    Step.findOne({ id: nextStepID }, (err, nextStep) => {
+      if (!nextStep) {
+        next(createError(404, "Next Step not found"));
+        return;
+      } else if (err) {
+        console.log("error", err);
+        next(createError(500, "Error occurred while retrieving previous Step"));
+        return;
+      }
+
+      // TODO update its number and prev_step_id
+    });
+
+    // TODO for all subsequent Steps, increment the number field
+    // TODO will need a transaction here to ensure atomicity for all updates
+    // This is where using an array in a parent document would reduce the # of DB trips
+
+    res.send(newStepBody);
+  });
 };
 
 export const updateStep = (req, res, next) => {
