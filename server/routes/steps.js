@@ -2,6 +2,7 @@ import express from "express";
 import {
   getAllSteps,
   getStep,
+  getStepData,
   appendStep,
   createStep,
   updateStep,
@@ -16,6 +17,9 @@ router.get("/", getAllSteps);
 
 // GET /steps/1
 router.get("/:id", getStep);
+
+// GET /steps/1/data
+router.get("/:id/data", getStepData);
 
 // PUT /steps/1
 router.put("/:id", updateStep);

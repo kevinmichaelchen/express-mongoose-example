@@ -418,3 +418,22 @@ export const getStep = async (req, res, next) => {
     return;
   }
 };
+
+export const getStepData = async (req, res, next) => {
+  const { Step } = getModels();
+
+  const { id } = req.params;
+
+  try {
+    const step = await Step.findOne({ id }).exec();
+    if (!step) {
+      notFoundErr(next)(err)("Step not found");
+      return;
+    }
+    res.send(step.data_block);
+  } catch (err) {
+    console.error(err);
+    internalErr(next)(err)("Error occurred while finding Step:");
+    return;
+  }
+};
