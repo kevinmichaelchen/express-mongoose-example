@@ -21,11 +21,14 @@ http POST localhost:3000/steps/add
 
 curl -X POST localhost:3000/steps/add -d '{"data_block": {"title": "Title"}}'
 
-echo '{ "data_block": { "title": "Title" }, "media_block": { "highlight_block": {} } }' | http localhost:3000/steps/add
+echo '{ "data_block": { "title": "Title 1" }, "media_block": { "highlight_block": {} } }' | http localhost:3000/steps/add
+echo '{ "data_block": { "title": "Title 2" }, "media_block": { "highlight_block": {} } }' | http localhost:3000/steps/add
+echo '{ "data_block": { "title": "Title 3" }, "media_block": { "highlight_block": {} } }' | http localhost:3000/steps/add
 ```
+
 #### Create document
 ```bash
-http POST localhost:3000/steps title="Woo"
+echo '{ "data_block": { "title": "MOOOO" }, "media_block": { "highlight_block": {} } }' | http POST localhost:3000/steps after=="8c15af62-b097-4b89-bb67-ea8137d57952"
 ```
 
 #### Update document

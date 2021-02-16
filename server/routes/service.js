@@ -1,8 +1,10 @@
-import { ulid } from "ulid";
+import { v4 as uuidv4 } from "uuid";
 import createError from "http-errors";
 import { getModels } from "../db";
 import { getPaginationParams } from "./query-params";
 import mongoose from "mongoose";
+
+const newID = () => uuidv4();
 
 export const getAllSteps = async (req, res, next) => {
   const { Step } = getModels();
@@ -75,7 +77,7 @@ export const appendStep = async (req, res, next) => {
 
     // Create new step body
     const newStepBody = {
-      id: ulid(),
+      id: newID(),
       next_step_id: "",
       prev_step_id: prevStepID,
       data_block: {
@@ -160,10 +162,9 @@ export const createStep = async (req, res, next) => {
 
   // The index of the Step that we want to insert the new step after
   const after = query.after;
-  if (!after) {
-    next(createError(500, "Must provide 'after' url param"));
-    return;
-  }
+  const isPrepend = !after;
+
+  let newStepResponse;
 
   try {
     const previousStep = await Step.findOne({ id: after }).exec();
@@ -178,7 +179,7 @@ export const createStep = async (req, res, next) => {
 
     // Create new step body
     const newStepBody = {
-      id: ulid(),
+      id: newID(),
       next_step_id: nextStepID,
       prev_step_id: previousStep.id,
       data_block: {
@@ -204,7 +205,7 @@ export const createStep = async (req, res, next) => {
 
     // Save previous Step to database
     try {
-      await previousStep.save().exec();
+      await previousStep.save();
     } catch (err) {
       console.log("Failed to save previous Step", err);
       next(createError(500, "Error occurred while saving previous Step"));
@@ -216,9 +217,8 @@ export const createStep = async (req, res, next) => {
     console.log("Saving", newStep.toString());
 
     // Save new Step to database
-    let newStepResponse;
     try {
-      newStepResponse = await newStep.save().exec();
+      newStepResponse = await newStep.save();
     } catch (err) {
       next(createError(500, "Error occurred while saving Step"));
       return;
@@ -229,7 +229,7 @@ export const createStep = async (req, res, next) => {
     // This is where using an array in a parent document would reduce the # of DB trips
 
     let currentStepID = nextStepID;
-    let prevStepID = previousStep.id;
+    let prevStepID = newStepBody.id;
 
     // While there's a next step...
     while (!!currentStepID) {
@@ -237,7 +237,7 @@ export const createStep = async (req, res, next) => {
         // Look up next step...
         const currentStep = await Step.findOne({ id: currentStepID }).exec();
         if (!currentStep) {
-          next(createError(404, "Current Step not found"));
+          notFoundErr(next)({})(`Step ${currentStepID} not found`);
           return;
         }
 
@@ -249,7 +249,7 @@ export const createStep = async (req, res, next) => {
 
         // Save current step
         try {
-          await currentStep.save().exec();
+          await currentStep.save();
         } catch (err) {
           next(createError(500, "Error occurred while saving Step"));
           return;
