@@ -12,21 +12,22 @@ export const getAllSteps = async (req, res, next) => {
     res.send(steps);
   } catch (err) {
     console.error(err);
-    internalErr(next)(err)("Error occurred while finding Steps");
+    internalErr(next)(err)("Error occurred while finding all Steps");
     return;
   }
 };
 
-export const deleteAllSteps = (req, res, next) => {
+export const deleteAllSteps = async (req, res, next) => {
   const { Step } = getModels();
-  Step.deleteMany({}, (err) => {
-    if (err) {
-      console.log("Failed to delete Steps", err);
-      next(createError(500, "Error occurred while deleting Steps"));
-      return;
-    }
+
+  try {
+    await Step.deleteMany({});
     res.send({ success: true });
-  });
+  } catch (err) {
+    console.error(err);
+    internalErr(next)(err)("Error occurred while deleting all Steps");
+    return;
+  }
 };
 
 export const appendStep = async (req, res, next) => {
