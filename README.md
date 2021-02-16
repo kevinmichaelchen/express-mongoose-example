@@ -35,7 +35,7 @@ echo '{ "data_block": { "title": "New New Title" }, "media_block": { "highlight_
 
 #### Get single document
 ```bash
-http GET localhost:3000/steps/{DOCUMENT_ID}
+http GET localhost:3000/steps/01EYPH9FPXH0F7X8AB8292A4AB
 ```
 
 #### Get all documents

@@ -423,24 +423,28 @@ export const deleteStep = async (req, res, next) => {
   res.send(deletedStep);
 };
 
-const internalErr = (next) => (err) => (msg) =>
-  next(createError(500, msg + ": " + JSON.stringify(err)));
+const createErr = (code) => (next) => (err) => (msg) =>
+  next(createError(code, msg + ": " + JSON.stringify(err)));
 
-export const getStep = (req, res, next) => {
+const internalErr = (next) => (err) => (msg) => createErr(500)(next)(err)(msg);
+
+const notFoundErr = (next) => (err) => (msg) => createErr(404)(next)(err)(msg);
+
+export const getStep = async (req, res, next) => {
   const { Step } = getModels();
 
   const { id } = req.params;
 
-  Step.findOne({ id }, (err, doc) => {
-    if (!doc) {
-      next(createError(404, "Step not found"));
-      return;
-    } else if (err) {
-      console.log("error", err);
-      next(createError(500, "Error occurred while retrieving Step"));
+  try {
+    const step = await Step.findOne({ id }).exec();
+    if (!step) {
+      notFoundErr(next)(err)("Step not found");
       return;
     }
-    console.log("Successfully retrieved Step");
-    res.send(doc);
-  });
+    res.send(step);
+  } catch (err) {
+    console.error(err);
+    internalErr(next)(err)("Error occurred while finding Step:");
+    return;
+  }
 };
