@@ -24,6 +24,7 @@ const initializeConnection = () => {
     useUnifiedTopology: true,
     useFindAndModify: false,
     useCreateIndex: true,
+    bufferCommands: false,
   });
   db = mongoose.connection;
   db.on("error", console.error.bind(console, "connection error:"));

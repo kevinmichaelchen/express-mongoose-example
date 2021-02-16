@@ -15,6 +15,14 @@ npm start
 ```
 
 ### Hitting the API
+#### Append document
+```bash
+http POST localhost:3000/steps/add
+
+curl -X POST localhost:3000/steps/add -d '{"data_block": {"title": "Title"}}'
+
+echo '{ "data_block": { "title": "Title" }, "media_block": { "highlight_block": {} } }' | http localhost:3000/steps/add
+```
 #### Create document
 ```bash
 http POST localhost:3000/steps title="Woo"
@@ -22,7 +30,7 @@ http POST localhost:3000/steps title="Woo"
 
 #### Update document
 ```bash
-http PUT localhost:3000/steps/{DOCUMENT_ID} title="New Title"
+echo '{ "data_block": { "title": "New New Title" }, "media_block": { "highlight_block": {} } }' | http PUT localhost:3000/steps/01EYPH9FPXH0F7X8AB8292A4AB
 ```
 
 #### Get single document
@@ -43,7 +51,7 @@ http GET localhost:3000/steps last=="2" before=="01EY6YXJMWSJTG5QD1D866XACY"
 
 #### Delete document
 ```bash
-http DELETE localhost:3000/steps/{DOCUMENT_ID}
+http DELETE localhost:3000/steps/01EYPH9NTW4VZCJMBCSEH3RTAS
 ```
 
 #### Delete all documents

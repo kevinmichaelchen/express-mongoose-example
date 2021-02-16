@@ -60,10 +60,11 @@ export const deleteAllSteps = (req, res, next) => {
   });
 };
 
-export const appendStep = (req, res, next) => {
+export const appendStep = async (req, res, next) => {
   const { Step } = getModels();
 
   const { body } = req;
+  console.log("body", body);
   const {
     data_block: { title, instruction, audio_instruction },
     media_block: {
@@ -76,9 +77,101 @@ export const appendStep = (req, res, next) => {
       },
     },
   } = body;
+
+  // Find the last step!
+  let newStepResponse;
+  let steps;
+  try {
+    steps = await Step.find({}).exec().catch(console.error);
+    console.log("steps", steps);
+  } catch (err) {
+    console.error(err);
+    next(
+      createError(
+        500,
+        "Error occurred while getting all Steps" + JSON.stringify(err)
+      )
+    );
+    return;
+  }
+
+  try {
+    const isFirstStep = steps.length === 0;
+
+    const formerLastStep = await Step.findOne({ next_step_id: "" })
+      .exec()
+      .catch(console.error);
+    const prevStepID = isFirstStep ? "" : formerLastStep.id;
+
+    // Create new step body
+    const newStepBody = {
+      id: ulid(),
+      next_step_id: "",
+      prev_step_id: prevStepID,
+      data_block: {
+        // Increment the number!
+        number: isFirstStep ? 1 : formerLastStep.data_block.number + 1,
+        title,
+        instruction,
+        audio_instruction,
+      },
+      media_block: {
+        image_urls,
+        video_urls,
+        highlight_block: {
+          banner_image_url,
+          profile_image_url,
+          recipe_tutorial_video_url,
+        },
+      },
+    };
+
+    // Save new Step to database
+    const newStep = new Step(newStepBody);
+    try {
+      newStepResponse = await newStep.save();
+    } catch (err) {
+      console.error(err);
+      next(
+        createError(
+          500,
+          "Error occurred while saving new last Step" + JSON.stringify(err)
+        )
+      );
+      return;
+    }
+
+    if (!isFirstStep) {
+      try {
+        formerLastStep.next_step_id = newStepBody.id;
+        await formerLastStep.save();
+      } catch (err) {
+        console.error(err);
+        next(
+          createError(
+            500,
+            "Error occurred while saving penultimate Step:" +
+              JSON.stringify(err)
+          )
+        );
+        return;
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    next(
+      createError(
+        500,
+        "Error occurred while saving penultimate Step: " + JSON.stringify(err)
+      )
+    );
+    return;
+  }
+
+  res.send(newStepResponse);
 };
 
-export const createStep = (req, res, next) => {
+export const createStep = async (req, res, next) => {
   const { Step } = getModels();
 
   const { body, query } = req;
@@ -102,14 +195,10 @@ export const createStep = (req, res, next) => {
     return;
   }
 
-  // Look up the Step that we're inserting after
-  Step.findOne({ id: after }, (err, previousStep) => {
+  try {
+    const previousStep = await Step.findOne({ id: after }).exec();
     if (!previousStep) {
       next(createError(404, "Previous Step not found"));
-      return;
-    } else if (err) {
-      console.log("error", err);
-      next(createError(500, "Error occurred while retrieving previous Step"));
       return;
     }
 
@@ -117,6 +206,7 @@ export const createStep = (req, res, next) => {
     const prevNumber = previousStep.data_block.number;
     const nextStepID = previousStep.next_step_id;
 
+    // Create new step body
     const newStepBody = {
       id: ulid(),
       next_step_id: nextStepID,
@@ -143,88 +233,198 @@ export const createStep = (req, res, next) => {
     previousStep.next_step_id = newStepBody.id;
 
     // Save previous Step to database
-    previousStep.save((err, step) => {
-      if (err) {
-        console.log("Failed to create Step", err);
-        next(createError(500, "Error occurred while saving previous Step"));
-        return;
-      }
-      console.log("Successfully saved:", step.toString());
-    });
+    try {
+      await previousStep.save().exec();
+    } catch (err) {
+      console.log("Failed to save previous Step", err);
+      next(createError(500, "Error occurred while saving previous Step"));
+      return;
+    }
 
     // Create new object
     const newStep = new Step(newStepBody);
     console.log("Saving", newStep.toString());
 
-    // Save new object to database
-    newStep.save((err, step) => {
-      if (err) {
-        console.log("Failed to create Step", err);
-        next(createError(500, "Error occurred while saving Step"));
-        return;
-      }
-      console.log("Successfully saved:", step.toString());
-    });
-
-    // Look up the Step that we're inserting after
-    Step.findOne({ id: nextStepID }, (err, nextStep) => {
-      if (!nextStep) {
-        next(createError(404, "Next Step not found"));
-        return;
-      } else if (err) {
-        console.log("error", err);
-        next(createError(500, "Error occurred while retrieving previous Step"));
-        return;
-      }
-
-      // TODO update its number and prev_step_id
-    });
+    // Save new Step to database
+    let newStepResponse;
+    try {
+      newStepResponse = await newStep.save().exec();
+    } catch (err) {
+      next(createError(500, "Error occurred while saving Step"));
+      return;
+    }
 
     // TODO for all subsequent Steps, increment the number field
     // TODO will need a transaction here to ensure atomicity for all updates
     // This is where using an array in a parent document would reduce the # of DB trips
 
-    res.send(newStepBody);
-  });
+    let currentStepID = nextStepID;
+    let prevStepID = previousStep.id;
+
+    // While there's a next step...
+    while (!!currentStepID) {
+      try {
+        // Look up next step...
+        const currentStep = await Step.findOne({ id: currentStepID }).exec();
+        if (!currentStep) {
+          next(createError(404, "Current Step not found"));
+          return;
+        }
+
+        // Update number
+        currentStep.data_block.number = currentStep.data_block.number + 1;
+
+        // Update previous reference
+        currentStep.prev_step_id = prevStepID;
+
+        // Save current step
+        try {
+          await currentStep.save().exec();
+        } catch (err) {
+          next(createError(500, "Error occurred while saving Step"));
+          return;
+        }
+
+        // Update pointers
+        currentStepID = currentStep.next_step_id;
+        prevStepID = currentStep.prev_step_id;
+      } catch (err) {
+        // TODO return err
+      }
+    }
+  } catch (err) {
+    next(createError(500, "Error occurred while retrieving previous Step"));
+    return;
+  }
+
+  res.send(newStepResponse);
 };
 
-export const updateStep = (req, res, next) => {
+export const updateStep = async (req, res, next) => {
   const { Step } = getModels();
 
   const { params, body } = req;
   const { id } = params;
-  const { title } = body;
+  const {
+    data_block: { title, instruction, audio_instruction },
+    media_block: {
+      image_urls,
+      video_urls,
+      highlight_block: {
+        banner_image_url,
+        profile_image_url,
+        recipe_tutorial_video_url,
+      },
+    },
+  } = body;
 
-  const update = { title };
+  const update = {
+    data_block: { title, instruction, audio_instruction },
+    media_block: {
+      image_urls,
+      video_urls,
+      highlight_block: {
+        banner_image_url,
+        profile_image_url,
+        recipe_tutorial_video_url,
+      },
+    },
+  };
   const options = { new: true, multi: false };
 
   console.log(`Updating Step ${id}...`);
 
-  Step.findByIdAndUpdate(id, update, options, (err, doc) => {
-    if (err) {
-      console.log("Failed to update Step", err);
-      next(createError(500, "Error occurred while updating Step"));
-      return;
-    }
-    console.log("Successfully updated Step");
-    res.send(doc);
-  });
+  try {
+    const newDoc = await Step.findOneAndUpdate(id, update, options).exec();
+    res.send(newDoc);
+  } catch (err) {
+    internalErr(next)(err)("failed to find one and update");
+    return;
+  }
 };
 
-export const deleteStep = (req, res, next) => {
+export const deleteStep = async (req, res, next) => {
   const { Step } = getModels();
 
   const { id } = req.params;
 
-  Step.deleteOne({ id }, (err) => {
-    if (err) {
-      console.log("Failed to delete Step", err);
-      next(createError(500, "Error occurred while deleting Step"));
+  let deletedStep;
+  try {
+    deletedStep = await Step.findOneAndDelete({ id }).exec();
+  } catch (err) {
+    console.error(err);
+    next(
+      createError(
+        500,
+        "Error occurred while getting Step we want to delete: " +
+          JSON.stringify(err)
+      )
+    );
+    return;
+  }
+
+  if (!deletedStep) {
+    next(createError(404, "Failed to find step you want to delete"));
+    return;
+  }
+
+  let leftStep, rightStep;
+  let prevStepID = deletedStep.prev_step_id;
+  let nextStepID = deletedStep.next_step_id;
+
+  if (prevStepID) {
+    try {
+      leftStep = await Step.findOne({ id: prevStepID }).exec();
+    } catch (err) {
+      internalErr(next)(err)(
+        "Error occurred while looking up Step previous to deleted Step:"
+      );
       return;
     }
-    console.log("Successfully deleted Step");
-  });
+  }
+
+  if (nextStepID) {
+    try {
+      rightStep = await Step.findOne({ id: nextStepID }).exec();
+    } catch (err) {
+      internalErr(next)(err)(
+        "Error occurred while looking up Step after deleted Step:"
+      );
+      return;
+    }
+  }
+
+  if (leftStep) {
+    try {
+      leftStep.next_step_id = rightStep ? rightStep.id : "";
+      await leftStep.save();
+    } catch (err) {
+      console.error(err);
+      internalErr(next)(err)(
+        "Error occurred while saving Step previous to deleted Step:"
+      );
+      return;
+    }
+  }
+
+  if (rightStep) {
+    try {
+      rightStep.prev_step_id = leftStep ? leftStep.id : "";
+      await rightStep.save();
+    } catch (err) {
+      console.error(err);
+      internalErr(next)(err)(
+        "Error occurred while saving Step after deleted Step:"
+      );
+      return;
+    }
+  }
+
+  res.send(deletedStep);
 };
+
+const internalErr = (next) => (err) => (msg) =>
+  next(createError(500, msg + ": " + JSON.stringify(err)));
 
 export const getStep = (req, res, next) => {
   const { Step } = getModels();

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "npm run dev",
-    "server": "node ./dist-server/bin/www",
+    "server": "node --inspect ./dist-server/bin/www",
     "dev": "NODE_ENV=development npm-run-all build server",
     "build": "npm-run-all clean transpile",
     "launch": "node ./server/bin/www",
@@ -17,6 +17,8 @@
     "@babel/cli": "^7.12.13",
     "@babel/core": "^7.12.13",
     "@babel/preset-env": "^7.12.13",
+    "@babel/runtime": "^7.12.13",
+    "body-parser": "^1.18.3",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
     "express": "~4.16.1",
@@ -30,6 +32,7 @@
     "ulid": "^2.3.0"
   },
   "devDependencies": {
+    "@babel/plugin-transform-runtime": "^7.12.15",
     "husky": "^5.0.9",
     "nodemon": "^2.0.7",
     "prettier": "2.2.1",
@@ -38,6 +41,19 @@
   "babel": {
     "presets": [
       "@babel/preset-env"
+    ],
+    "plugins": [
+      [
+        "@babel/plugin-transform-runtime",
+        {
+          "absoluteRuntime": false,
+          "corejs": false,
+          "helpers": true,
+          "regenerator": true,
+          "useESModules": false,
+          "version": "7.0.0-beta.0"
+        }
+      ]
     ]
   },
   "husky": {
