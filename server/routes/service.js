@@ -163,6 +163,63 @@ export const createStep = async (req, res, next) => {
   // The index of the Step that we want to insert the new step after
   const after = query.after;
   const isPrepend = !after;
+  let isEmpty, firstStepID, lastStepID;
+
+  try {
+    const steps = await Step.find({}).exec();
+    if (!steps || steps.length === 0) {
+      isEmpty = true;
+    } else {
+      firstStepID = steps[0].id;
+      lastStepID = steps[steps.length - 1].id;
+    }
+  } catch (err) {
+    internalErr(next)(err)("failed to get steps");
+    return;
+  }
+
+  if (isEmpty || after === lastStepID) {
+    return await appendStep(req, res);
+  }
+
+  if (isPrepend) {
+    const formerHead = await Step.findOne({ id: firstStepID }).exec();
+
+    console.log("formerHead", formerHead);
+
+    // Create new step body
+    const newStepBody = {
+      id: newID(),
+      next_step_id: formerHead.id,
+      prev_step_id: "",
+      data_block: {
+        // Increment the number!
+        number: 1,
+        title,
+        instruction,
+        audio_instruction,
+      },
+      media_block: {
+        image_urls,
+        video_urls,
+        highlight_block: {
+          banner_image_url,
+          profile_image_url,
+          recipe_tutorial_video_url,
+        },
+      },
+    };
+
+    const newStep = new Step(newStepBody);
+    await newStep.save();
+
+    formerHead.data_block.number = 2;
+    formerHead.prev_step_id = newStepBody.id;
+    await formerHead.save();
+
+    res.send(newStepBody);
+    return;
+  }
 
   let newStepResponse;
 

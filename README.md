@@ -28,6 +28,7 @@ echo '{ "data_block": { "title": "Title 3" }, "media_block": { "highlight_block"
 
 #### Create document
 ```bash
+echo '{ "data_block": { "title": "REVENGE OF THE MOOOO" }, "media_block": { "highlight_block": {} } }' | http POST localhost:3000/steps after==""
 echo '{ "data_block": { "title": "MOOOO" }, "media_block": { "highlight_block": {} } }' | http POST localhost:3000/steps after=="8c15af62-b097-4b89-bb67-ea8137d57952"
 ```
 
